@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECMO 初期設定計算</title>
+</head>
+
+<body style="font-family:sans-serif; line-height:1.5;">
+
+<h2>ECMO 初期設定計算</h2>
+
+<hr>
+
+<h3>患者情報</h3>
+
+身長(cm)<br>
+<input type="number" id="height"><br><br>
+
+体重(kg)<br>
+<input type="number" id="weight"><br><br>
+
+ECMOモード<br>
+<select id="ecmoMode">
+  <option value="VV">VV-ECMO</option>
+  <option value="VA">VA-ECMO</option>
+</select><br><br>
+
+BSA係数（L/min/m²）<br>
+<select id="bsaCoef">
+  <option value="2.1">2.1</option>
+  <option value="2.4" selected>2.4</option>
+  <option value="3.0">3.0</option>
+</select>
+
+<hr>
+
+<h3>カニューレ選択（施設ルール）</h3>
+
+脱血カニューレ<br>
+<select id="drainFr">
+  <option value="">自動選択</option>
+  <option value="19.5">19.5 Fr</option>
+  <option value="21">21 Fr</option>
+  <option value="24">24 Fr</option>
+</select><br><br>
+
+送血カニューレ<br>
+<select id="returnFr">
+  <option value="">自動選択</option>
+  <option value="15">15 Fr</option>
+  <option value="16.5">16.5 Fr</option>
+  <option value="20">20 Fr</option>
+</select>
+
+<hr>
+
+<button onclick="calc()">計算</button>
+
+<hr>
+
+<div id="result"></div>
+
+<script>
+function calc(){
+
+  /* ===== 入力 ===== */
+  const h = Number(document.getElementById("height").value);
+  const w = Number(document.getElementById("weight").value);
+  const coef = Number(document.getElementById("bsaCoef").value);
+  const mode = document.getElementById("ecmoMode").value;
+
+  const drainManual = document.getElementById("drainFr").value;
+  const returnManual = document.getElementById("returnFr").value;
+
+  if (!h || !w) {
+    alert("身長と体重を入力してください");
+    return;
+  }
+
+  /* ===== BSA ===== */
+  const BSA = Math.sqrt(h * w / 3600);
+
+  /* ===== 目標流量（BSAベース） ===== */
+  const targetFlow = BSA * coef;
+
+  /* ===== 自動カニューレ選択 ===== */
+  let drainFr = targetFlow >= 4.0 ? 24 :
+                targetFlow >= 3.0 ? 21 : 19.5;
+
+  let returnFr = targetFlow >= 4.0 ? 20 :
+                 targetFlow >= 3.0 ? 16.5 : 15;
+
+  /* ===== 手動上書き ===== */
+  if (drainManual) drainFr = Number(drainManual);
+  if (returnManual) returnFr = Number(returnManual);
+
+  /* ===== 血管径計算 ===== */
+  const frToMm = fr => fr * 0.33;
+
+  const drainOD = frToMm(drainFr);
+  const returnOD = frToMm(returnFr);
+
+  const drainRec = drainOD * 1.5;
+  const drainMin = drainOD * 1.3;
+  const returnRec = returnOD * 1.5;
+  const returnMin = returnOD * 1.3;
+
+  /* ===== 必要回転数（理論） ===== */
+  const rpm = Math.round(targetFlow / 4.0 * 3500);
+
+  /* ===== 表示 ===== */
+  document.getElementById("result").innerHTML = `
+【ECMOモード】<br>
+${mode}<br><br>
+
+【BSA】<br>
+${BSA.toFixed(2)} m²<br><br>
+
+【目標ECMO流量】<br>
+${targetFlow.toFixed(1)} L/min（BSA × ${coef}）<br><br>
+
+【脱血カニューレ】<br>
+${drainFr} Fr<br>
+血管径 推奨 ≥ ${drainRec.toFixed(1)} mm / 許容 ≥ ${drainMin.toFixed(1)} mm<br><br>
+
+【送血カニューレ】<br>
+${returnFr} Fr<br>
+血管径 推奨 ≥ ${returnRec.toFixed(1)} mm / 許容 ≥ ${returnMin.toFixed(1)} mm<br><br>
+
+【必要ポンプ回転数（推定）】<br>
+${rpm} rpm
+`;
+}
+</script>
+
+</body>
+</html>
