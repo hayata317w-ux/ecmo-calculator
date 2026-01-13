@@ -4,10 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>ECMO Expert Support Tool v2</title>
-
+<title>ECMO Expert Support Tool v3</title>
 <style>
   :root { --primary: #0056b3; --warning: #ffc107; --danger: #dc3545; --success: #2e7d32; --bg: #f4f7f6; }
   body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 10px; margin: 0; }
@@ -25,21 +22,21 @@
   .row { display: flex; gap: 12px; margin-bottom: 5px; }
   .row > div { flex: 1; }
   button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
-  #result { margin-top: 15px; padding: 15px; background: #fdfdfd; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; line-height: 1.6; }
+  #result { margin-top: 15px; padding: 12px; background: #fdfdfd; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; line-height: 1.6; }
   .alert-box { padding: 10px; border-radius: 6px; margin-bottom: 10px; font-weight: bold; font-size: 0.85rem; text-align: center; }
   .mode-selector { display: flex; gap: 8px; margin-bottom: 15px; background: #eee; padding: 4px; border-radius: 8px; }
   .mode-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 0.85rem; }
   .mode-btn.active { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: var(--primary); }
-  .diam-table { width: 100%; font-size: 0.85rem; border-collapse: collapse; margin-top: 8px; background: #fff; }
+  .diam-table { width: 100%; font-size: 0.85rem; border-collapse: collapse; margin-top: 8px; }
   .diam-table th, .diam-table td { padding: 6px; border: 1px solid #eee; text-align: center; }
-  .diam-table th { background: #f8f9fa; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/chart.js?v=202401"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
 <div class="card">
-  <h2 style="text-align:center; margin-top:0; font-size: 1.2rem;">ECMO Support Tool v2</h2>
+  <h2 style="text-align:center; margin-top:0; font-size: 1.1rem;">ECMO Support Tool v3</h2>
+  
   <div class="tabs">
     <div id="tab-btn-init" class="tab active" onclick="switchTab('tab-init')">導入・設計</div>
     <div id="tab-btn-manage" class="tab" onclick="switchTab('tab-manage')">稼働管理</div>
@@ -52,12 +49,24 @@
         <div class="input-group"><label>体重(kg)</label><input type="number" id="w" value="60" oninput="updateChart()"></div>
       </div>
       <div class="row">
-        <div class="input-group"><label>Hb(g/dL)</label><input type="number" id="initHb" value="10" oninput="updateChart()"></div>
-        <div class="input-group"><label>設定回転数(RPM)</label><input type="number" id="targetRPM" value="3000" oninput="updateChart()"></div>
+        <div class="input-group"><label>脱血(Fr)</label>
+          <select id="initDFr" onchange="updateChart()">
+            <option value="19.5">19.5 Fr</option>
+            <option value="21" selected>21 Fr</option>
+            <option value="24">24 Fr</option>
+          </select>
+        </div>
+        <div class="input-group"><label>送血(Fr)</label>
+          <select id="initRFr" onchange="updateChart()">
+            <option value="15">15 Fr</option>
+            <option value="16.5" selected>16.5 Fr</option>
+            <option value="20">20 Fr</option>
+          </select>
+        </div>
       </div>
       <div class="row">
-        <div class="input-group"><label>脱血(Fr)</label><select id="initDFr" onchange="updateChart()"><option value="19.5">19.5</option><option value="21" selected>21</option></select></div>
-        <div class="input-group"><label>送血(Fr)</label><select id="initRFr" onchange="updateChart()"><option value="15">15</option><option value="16.5" selected>16.5</option></select></div>
+        <div class="input-group"><label>Hb(g/dL)</label><input type="number" id="initHb" value="10" oninput="updateChart()"></div>
+        <div class="input-group"><label>設定RPM</label><input type="number" id="targetRPM" value="3000" oninput="updateChart()"></div>
       </div>
     </section>
     <button onclick="calcInit()">設計シミュレーション実行</button>
@@ -76,12 +85,12 @@
         <div class="input-group"><label>ガス流量(L/min)</label><input type="number" id="curSweep" step="0.1" value="3.0"></div>
       </div>
       <div class="row">
-        <div class="input-group"><label>P1(脱血圧)</label><input type="number" id="p1" value="-40"></div>
-        <div class="input-group"><label>P2(膜前圧)</label><input type="number" id="p2" value="250"></div>
+        <div class="input-group"><label>P1 脱血圧</label><input type="number" id="p1" value="-40"></div>
+        <div class="input-group"><label>P2 膜前圧</label><input type="number" id="p2" value="250"></div>
       </div>
     </section>
     <section>
-      <h3>血液ガス管理</h3>
+      <h3>血液ガス・酸素化</h3>
       <div class="row">
         <div class="input-group"><label>現在 PaO2</label><input type="number" id="curO2" value="250"></div>
         <div class="input-group"><label>現在 FiO2</label><input type="number" id="curFiO2" step="0.1" value="1.0"></div>
@@ -98,28 +107,24 @@
     <section>
       <h3>凝固管理</h3>
       <div class="row">
-        <div class="input-group"><label>ACT</label><input type="number" id="curACT" value="220"></div>
-        <div class="input-group"><label>APTT</label><input type="number" id="curAPTT" value="60"></div>
-      </div>
-      <div class="row">
-        <div class="input-group" style="flex: 2;"><label>Heparin (u/h)</label><input type="number" id="hepUnits" value="600"></div>
+        <div class="input-group"><label>ACT(sec)</label><input type="number" id="curACT" value="220"></div>
+        <div class="input-group"><label>APTT(sec)</label><input type="number" id="curAPTT" value="60"></div>
       </div>
     </section>
     <button onclick="calcManage()">臨床解析実行</button>
   </div>
-  <div id="result">解析待ち...</div>
+
+  <div id="result">数値を入力してください</div>
 </div>
 
 <script>
-// --- 強制キャッシュクリア処理 ---
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    for (let registration of registrations) { registration.unregister(); }
-  });
-}
-// --- アプリロジック ---
 let currentMode = 'VA';
-const capioxData = { drain: {"19.5": 8.2, "21": 5.8}, return: {"15": 32.0, "16.5": 21.0}, oxy: 4.5 };
+// メラ社データに基づく抵抗係数の近似 (K * Flow^1.75)
+const cannulaData = {
+    drain: { "19.5": 8.2, "21": 5.8, "24": 3.2 },
+    return: { "15": 32.0, "16.5": 21.0, "20": 9.5 },
+    oxy: 4.5
+};
 let myChart;
 
 function setMode(mode) {
@@ -134,24 +139,44 @@ function updateChart() {
     const dFr = document.getElementById('initDFr').value;
     const rFr = document.getElementById('initRFr').value;
     const rpm = Number(document.getElementById('targetRPM').value);
-    const flows = [0, 1, 2, 3, 4, 5, 6];
-    const totalResist = flows.map(f => (capioxData.drain[dFr] * Math.pow(f, 1.75) + capioxData.return[rFr] * Math.pow(f, 1.75) + capioxData.oxy * Math.pow(f, 1.7)));
+    const flows = [0, 1, 2, 3, 4, 5, 6, 7];
+    
+    // 総抵抗 = 脱血抵抗 + 送血抵抗 + 膜抵抗
+    const totalResist = flows.map(f => (cannulaData.drain[dFr] * Math.pow(f, 1.75) + cannulaData.return[rFr] * Math.pow(f, 1.75) + cannulaData.oxy * Math.pow(f, 1.7)));
     const pumpHead = flows.map(f => Math.max(0, (450 * Math.pow(rpm/3000, 2)) - (20 * f * (rpm/3000))));
+
     if (myChart) myChart.destroy();
-    myChart = new Chart(ctx, { type: 'line', data: { labels: flows, datasets: [{ label: 'ポンプ揚程', data: pumpHead, borderColor: '#2e7d32', borderDash: [5, 5] }, { label: '回路総抵抗', data: totalResist, borderColor: '#333', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false } });
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: flows,
+            datasets: [
+                { label: 'ポンプ揚程', data: pumpHead, borderColor: '#2e7d32', borderDash: [5, 5], fill: false },
+                { label: '回路総抵抗', data: totalResist, borderColor: '#333', borderWidth: 2, fill: false }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: '圧力 (mmHg)' }, max: 500 } } }
+    });
 }
 
 function calcInit() {
-    const bsa = Math.sqrt(Number(document.getElementById('h').value) * Number(document.getElementById('w').value) / 3600);
-    const dFr = document.getElementById('initDFr').value; const rFr = document.getElementById('initRFr').value;
-    const dOD = dFr * 0.33; const rOD = rFr * 0.33;
+    const h = Number(document.getElementById('h').value);
+    const w = Number(document.getElementById('w').value);
+    const bsa = Math.sqrt(h * w / 3600);
+    const dFr = document.getElementById('initDFr').value; 
+    const rFr = document.getElementById('initRFr').value;
+    
+    const dOD = dFr * 0.333; // 外径(mm)
+    const rOD = rFr * 0.333;
+
     document.getElementById('result').innerHTML = `
         <strong>【血行動態】</strong> 目標流量: ${(bsa*2.4).toFixed(1)} L/min<br>
         <table class="diam-table">
-          <tr><th>基準</th><th>脱血</th><th>送血</th></tr>
-          <tr><td>1.5x</td><td><strong>${(dOD*1.5).toFixed(1)} mm</strong></td><td><strong>${(rOD*1.5).toFixed(1)} mm</strong></td></tr>
-          <tr><td>1.3x</td><td>${(dOD*1.3).toFixed(1)} mm</td><td>${(rOD*1.3).toFixed(1)} mm</td></tr>
+          <tr><th>基準</th><th>脱血(${dFr}Fr)</th><th>送血(${rFr}Fr)</th></tr>
+          <tr><td>推奨(1.5x)</td><td><strong>${(dOD*1.5).toFixed(1)} mm</strong></td><td><strong>${(rOD*1.5).toFixed(1)} mm</strong></td></tr>
+          <tr><td>許容(1.3x)</td><td>${(dOD*1.3).toFixed(1)} mm</td><td>${(rOD*1.3).toFixed(1)} mm</td></tr>
         </table>
+        <p style="font-size:0.75rem; color:#666;">※グラフの交点が現在の設定での物理的限界流量です。</p>
     `;
 }
 
@@ -160,21 +185,35 @@ function calcManage() {
     const sweep = Number(document.getElementById('curSweep').value);
     const curO2 = Number(document.getElementById('curO2').value);
     const curFiO2 = Number(document.getElementById('curFiO2').value);
+    const curCO2 = Number(document.getElementById('curCO2').value);
+    const targetCO2 = Number(document.getElementById('targetCO2').value);
+    const spo2 = Number(document.getElementById('spo2').value);
+    const svo2 = Number(document.getElementById('svo2').value);
     const act = Number(document.getElementById('curACT').value);
-    const nextFiO2 = Math.min(1.0, Math.max(0.21, (200 / curO2) * curFiO2));
-    const nextSweep = sweep * (Number(document.getElementById('curCO2').value) / Number(document.getElementById('targetCO2').value));
 
-    let html = (act > 250) ? `<div class="alert-box" style="background:var(--warning); color:white;">ACT高値：ヘパリン減量</div>` : (act < 200) ? `<div class="alert-box" style="background:var(--danger); color:white;">ACT低値：ヘパリン増量</div>` : "";
-    html += `<strong>【推奨】</strong> FiO2: <strong>${nextFiO2.toFixed(2)}</strong> / Sweep: <strong>${nextSweep.toFixed(1)} L</strong>`;
+    const nextFiO2 = Math.min(1.0, Math.max(0.21, (200 / curO2) * curFiO2));
+    const nextSweep = sweep * (curCO2 / targetCO2);
+
+    let html = "";
+    if (act > 250) html += `<div class="alert-box" style="background:var(--warning); color:white;">ACT高値：ヘパリン減量検討</div>`;
+    else if (act < 200) html += `<div class="alert-box" style="background:var(--danger); color:white;">ACT低値：ヘパリン増量検討</div>`;
+
+    if (currentMode === 'VV' && svo2 > 75 && spo2 < 90) {
+        html += `<div class="alert-box" style="background:var(--danger); color:white;">再循環リスク高 (SvO2 ${svo2}%)</div>`;
+    }
+
+    html += `<strong>【解析結果】</strong><br>P/F比: ${(curO2/curFiO2).toFixed(0)} / V/Q比: ${(sweep/bf).toFixed(2)}<hr>`;
+    html += `<strong>【推奨設定】</strong><br>推奨 FiO2: <strong>${nextFiO2.toFixed(2)}</strong><br>推奨 Sweep: <strong>${nextSweep.toFixed(1)} L/min</strong>`;
+
     document.getElementById('result').innerHTML = html;
 }
 
 function switchTab(t){
-  document.querySelectorAll(".tab, .content").forEach(e=>e.classList.remove("active"));
-  document.getElementById("tab-btn-"+t.split("-")[1]).classList.add("active");
-  document.getElementById(t).classList.add("active");
+    document.querySelectorAll(".tab, .content").forEach(e=>e.classList.remove("active"));
+    document.getElementById("tab-btn-"+t.split("-")[1]).classList.add("active");
+    document.getElementById(t).classList.add("active");
 }
-window.onload = () => { setMode('VA'); updateChart(); };
+window.onload = () => { updateChart(); };
 </script>
 </body>
 </html>
