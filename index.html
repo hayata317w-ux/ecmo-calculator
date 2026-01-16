@@ -3,110 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ECMO Simulator v45</title>
+  <title>ECMO Simulator v46</title>
   <style>
-    /* 画面全体の余白を消し、背景を少し暗くしてアプリ感を出す */
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #f0f2f5;
-      display: flex;
-      justify-content: center;
-    }
-
-    #ecmo-v45-app {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      width: 100%;
-      max-width: 480px; /* スマホの最大幅。PCで見ても広がりすぎない */
-      background: #fdfdfd;
-      min-height: 100vh;
-      box-shadow: 0 0 20px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .app-header { background: #1a5276; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+    body { margin: 0; padding: 0; background-color: #f0f2f5; display: flex; justify-content: center; }
+    #app { font-family: sans-serif; width: 100%; max-width: 480px; background: #fff; min-height: 100vh; display: flex; flex-direction: column; }
     
-    .dashboard { background: #2c3e50; color: white; padding: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; }
-    .dash-main { grid-column: 1 / 4; border-bottom: 1px solid #546e7a; padding-bottom: 10px; margin-bottom: 8px; }
-    .val-large { font-size: 2.8rem; font-weight: bold; color: #f1c40f; line-height: 1; }
-    .val-med { font-size: 1.4rem; font-weight: bold; }
-    .label-mini { font-size: 0.65rem; color: #bdc3c7; margin-bottom: 2px; }
+    .header { background: #1a5276; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
     
-    .supply-color { color: #2ecc71; }
-    .demand-color { color: #e74c3c; }
+    /* 需給ダッシュボード */
+    .dashboard { background: #2c3e50; color: white; padding: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; }
+    .dash-main { grid-column: 1 / 4; border-bottom: 1px solid #546e7a; padding-bottom: 10px; margin-bottom: 5px; }
+    .val-large { font-size: 2.8rem; font-weight: bold; color: #f1c40f; }
+    .val-med { font-size: 1.3rem; font-weight: bold; }
+    .label-mini { font-size: 0.65rem; color: #bdc3c7; }
     .ratio-box { background: rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 0; }
+    .alert-active { background: rgba(231, 76, 60, 0.4); border: 1px solid #e74c3c; animation: blink 1.2s infinite; }
+    @keyframes blink { 50% { opacity: 0.5; } }
 
-    .alert-active { background: rgba(231, 76, 60, 0.4); border: 1px solid #e74c3c; animation: blinker 1.2s linear infinite; }
-    @keyframes blinker { 50% { opacity: 0.6; } }
-
+    /* 入力エリアの重なり防止修正 */
     .input-sec { padding: 15px; border-bottom: 1px solid #eee; }
-    .row { display: flex; gap: 8px; margin-bottom: 10px; }
-    label { font-size: 0.75rem; font-weight: bold; color: #444; display: block; margin-bottom: 5px; }
-    select, input { width: 100%; padding: 12px 8px; border: 1px solid #bbb; border-radius: 6px; font-size: 1rem; -webkit-appearance: none; background: #fff; }
+    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+    .full-row { margin-bottom: 15px; }
     
-    .vessel-guide { background: #f0f4f8; padding: 12px; border-radius: 8px; font-size: 0.8rem; border-left: 5px solid #1a5276; line-height: 1.6; margin-top: 5px; }
-    .chart-container { flex-grow: 1; min-height: 220px; padding: 10px; }
-    .summary-text { font-size: 0.85rem; padding: 15px; background: #f8f9fa; border-top: 1px solid #ddd; font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; color: #222; }
+    label { font-size: 0.8rem; font-weight: bold; color: #555; display: block; margin-bottom: 6px; }
+    select, input { 
+      width: 100%; 
+      box-sizing: border-box; /* 幅計算を正確に */
+      padding: 12px 10px; 
+      border: 1px solid #bbb; 
+      border-radius: 6px; 
+      font-size: 1rem; 
+      background: #fdfdfd;
+    }
 
-    @media print { .app-header { display: none; } #ecmo-v45-app { box-shadow: none; max-width: 100%; } }
+    .vessel-guide { background: #f0f4f8; padding: 12px; border-radius: 8px; font-size: 0.8rem; border-left: 5px solid #1a5276; line-height: 1.6; }
+    .chart-container { padding: 10px; min-height: 220px; }
+    .summary-text { font-size: 0.85rem; padding: 15px; background: #f8f9fa; border-top: 1px solid #ddd; font-family: monospace; white-space: pre-wrap; }
   </style>
 </head>
 <body>
 
-<div id="ecmo-v45-app">
-  <div class="app-header">
-    <strong>ECMO Simulator v45</strong>
-    <button onclick="window.print()" style="background:#27ae60; color:white; border:none; padding:6px 12px; border-radius:5px; font-size:0.75rem; font-weight:bold;">保存/PDF</button>
+<div id="app">
+  <div class="header">
+    <strong>ECMO Simulator v46</strong>
+    <button onclick="window.print()" style="background:#27ae60; color:white; border:none; padding:6px 12px; border-radius:5px; font-weight:bold;">保存/PDF</button>
   </div>
 
   <div class="dashboard">
     <div class="dash-main">
       <div class="label-mini">予測実流量 (Flow)</div>
-      <div class="val-large"><span id="v45_flow">0.00</span> <small style="font-size:1.2rem;">L/min</small></div>
+      <div class="val-large"><span id="v_flow">0.00</span> <small style="font-size:1.2rem;">L/min</small></div>
     </div>
-    
     <div class="ratio-box">
-      <div class="label-mini">酸素供給 (DO2)</div>
-      <div class="val-med supply-color"><span id="v45_do2">-</span></div>
-      <div class="label-mini">ml/min</div>
+      <div class="label-mini">酸素供給(DO2)</div>
+      <div class="val-med" style="color:#2ecc71;"><span id="v_do2">-</span></div>
     </div>
-    
-    <div id="v45_ratio_box" class="ratio-box">
+    <div id="v_ratio_box" class="ratio-box">
       <div class="label-mini">需給倍率</div>
-      <div class="val-med" id="v45_ratio_val" style="color:#f39c12;"><span id="v45_ratio">-</span></div>
-      <div class="label-mini">DO2/VO2</div>
+      <div class="val-med" id="v_ratio_val" style="color:#f39c12;"><span id="v_ratio">-</span></div>
     </div>
-
     <div class="ratio-box">
-      <div class="label-mini">酸素消費 (VO2)</div>
-      <div class="val-med demand-color"><span id="v45_vo2">-</span></div>
-      <div class="label-mini">ml/min</div>
+      <div class="label-mini">酸素消費(VO2)</div>
+      <div class="val-med" style="color:#e74c3c;"><span id="v_vo2">-</span></div>
     </div>
   </div>
 
   <div class="input-sec">
-    <div class="row">
-      <div style="flex:1.8;"><label>回路セット</label><select id="v45_set" onchange="calc()"><option value="capiox">テルモ: Capiox M</option><option value="hls">ゲティンゲ: HLS</option><option value="mera">MERA: HAS</option></select></div>
-      <div style="flex:0.8;"><label>Hb</label><input type="number" id="v45_hb" value="10.0" step="0.1" oninput="calc()"></div>
-      <div style="flex:1;"><label>RPM</label><input type="number" id="v45_rpm" value="3000" step="100" oninput="calc()"></div>
+    <div class="full-row">
+      <label>回路セット</label>
+      <select id="v_set" onchange="calc()">
+        <option value="capiox">テルモ: Capiox M</option>
+        <option value="hls">ゲティンゲ: HLS</option>
+        <option value="mera">MERA: HAS</option>
+      </select>
     </div>
-    <div class="row">
-      <div style="flex:1;"><label>身長 (cm)</label><input type="number" id="v45_h" value="170" oninput="calc()"></div>
-      <div style="flex:1;"><label>体重 (kg)</label><input type="number" id="v45_w" value="65" oninput="calc()"></div>
+    
+    <div class="grid-row">
+      <div><label>目標 Hb (g/dL)</label><input type="number" id="v_hb" value="10.0" step="0.1" oninput="calc()"></div>
+      <div><label>回転数 (RPM)</label><input type="number" id="v_rpm" value="3000" step="100" oninput="calc()"></div>
+    </div>
+
+    <div class="grid-row">
+      <div><label>身長 (cm)</label><input type="number" id="v_h" value="170" oninput="calc()"></div>
+      <div><label>体重 (kg)</label><input type="number" id="v_w" value="65" oninput="calc()"></div>
     </div>
   </div>
 
   <div class="input-sec" style="background:#fcfcfc;">
-    <div class="row">
-      <div style="flex:1;"><label>脱血カニューレ</label><select id="v45_dM" onchange="updateSels(); calc()"></select><select id="v45_dFr" onchange="calc()" style="margin-top:5px;"></select></div>
-      <div style="flex:1;"><label>送血カニューレ</label><select id="v45_rM" onchange="updateSels(); calc()"></select><select id="v45_rFr" onchange="calc()" style="margin-top:5px;"></select></div>
+    <div class="grid-row">
+      <div><label>脱血カニューレ</label><select id="v_dM" onchange="updateSels(); calc()"></select></div>
+      <div><label>送血カニューレ</label><select id="v_rM" onchange="updateSels(); calc()"></select></div>
     </div>
-    <div id="v45_vessel" class="vessel-guide"></div>
+    <div class="grid-row">
+      <div><select id="v_dFr" onchange="calc()"></select></div>
+      <div><select id="v_rFr" onchange="calc()"></select></div>
+    </div>
+    <div id="v_vessel" class="vessel-guide"></div>
   </div>
 
-  <div class="chart-container"><canvas id="v45_chart"></canvas></div>
-  <div id="v45_sum" class="summary-text"></div>
+  <div class="chart-container"><canvas id="v_chart"></canvas></div>
+  <div id="v_sum" class="summary-text"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -124,36 +120,30 @@
             mera_pckc: { name: "メラ PCKC-A2", d: { "18": 11.0, "20": 7.5, "22": 5.2, "24": 3.8 }, r: { "16": 26.0, "18": 18.0, "20": 13.0 } }
         }
     };
-    let vChart = null;
+    let chart = null;
 
     window.updateSels = function() {
-        const dM = document.getElementById('v45_dM'), rM = document.getElementById('v45_rM');
+        const dM = document.getElementById('v_dM'), rM = document.getElementById('v_rM');
         if(!dM.options.length) { Object.keys(db.cannulae).forEach(m => { dM.add(new Option(db.cannulae[m].name, m)); rM.add(new Option(db.cannulae[m].name, m)); }); }
-        const dFr = document.getElementById('v45_dFr'), rFr = document.getElementById('v45_rFr');
+        const dFr = document.getElementById('v_dFr'), rFr = document.getElementById('v_rFr');
         dFr.innerHTML = Object.keys(db.cannulae[dM.value].d).map(f => `<option value="${f}">${f}Fr</option>`).join('');
         rFr.innerHTML = Object.keys(db.cannulae[rM.value].r).map(f => `<option value="${f}">${f}Fr</option>`).join('');
     };
 
     window.calc = function() {
-        if (typeof Chart === 'undefined') return;
-        const set = db.sets[document.getElementById('v45_set').value];
-        const hb = parseFloat(document.getElementById('v45_hb').value) || 10;
-        const h = parseFloat(document.getElementById('v45_h').value) || 170, w = parseFloat(document.getElementById('v45_w').value) || 65;
-        const rpm = parseInt(document.getElementById('v45_rpm').value) || 3000;
+        const set = db.sets[document.getElementById('v_set').value];
+        const hb = parseFloat(document.getElementById('v_hb').value) || 10;
+        const h = parseFloat(document.getElementById('v_h').value) || 170, w = parseFloat(document.getElementById('v_w').value) || 65;
+        const rpm = parseInt(document.getElementById('v_rpm').value) || 3000;
         const bsa = Math.sqrt(h * w / 3600), vo2 = Math.round(bsa * 125);
-        const dFrVal = document.getElementById('v45_dFr').value, rFrVal = document.getElementById('v45_rFr').value;
-        const dOD = parseFloat(dFrVal.split('(')[0]) * 0.333;
-        const rOD = parseFloat(rFrVal.split('(')[0]) * 0.333;
+        const dFrVal = document.getElementById('v_dFr').value, rFrVal = document.getElementById('v_rFr').value;
+        const dOD = parseFloat(dFrVal.split('(')[0]) * 0.333, rOD = parseFloat(rFrVal.split('(')[0]) * 0.333;
 
-        document.getElementById('v45_vessel').innerHTML = 
-            `<b>推奨血管内径の目安:</b><br>` +
-            `脱血側: 推奨 ${(dOD*1.5).toFixed(1)}mm / 限界 ${(dOD*1.2).toFixed(1)}mm<br>` +
-            `送血側: 推奨 ${(rOD*1.5).toFixed(1)}mm / 限界 ${(rOD*1.2).toFixed(1)}mm<br>` +
-            `<small>※推奨=占有率66%以下 / 限界=占有率83%相当</small>`;
+        document.getElementById('v_vessel').innerHTML = `<b>推奨血管内径の目安:</b><br>脱血: 推奨 ${(dOD*1.5).toFixed(1)}mm / 限界 ${(dOD*1.2).toFixed(1)}mm<br>送血: 推奨 ${(rOD*1.5).toFixed(1)}mm / 限界 ${(rOD*1.2).toFixed(1)}mm`;
 
         const vF = (hb * 0.06) + 0.4;
-        const dR = db.cannulae[document.getElementById('v45_dM').value].d[dFrVal];
-        const rR = db.cannulae[document.getElementById('v45_rM').value].r[rFrVal];
+        const dR = db.cannulae[document.getElementById('v_dM').value].d[dFrVal];
+        const rR = db.cannulae[document.getElementById('v_rM').value].r[rFrVal];
         
         let low = 0, high = 8, opF = 0;
         for(let i=0; i<20; i++) {
@@ -166,31 +156,25 @@
         const do2 = Math.round((hb * 1.34 + 0.12) * opF * 10);
         const ratio = (do2 / vo2);
 
-        document.getElementById('v45_flow').innerText = opF.toFixed(2);
-        document.getElementById('v45_do2').innerText = do2;
-        document.getElementById('v45_vo2').innerText = vo2;
-        document.getElementById('v45_ratio').innerText = ratio.toFixed(1);
+        document.getElementById('v_flow').innerText = opF.toFixed(2);
+        document.getElementById('v_do2').innerText = do2;
+        document.getElementById('v_vo2').innerText = vo2;
+        document.getElementById('v_ratio').innerText = ratio.toFixed(1);
 
-        const rBox = document.getElementById('v45_ratio_box');
+        const rBox = document.getElementById('v_ratio_box');
         if (ratio <= 2.0) rBox.classList.add('alert-active'); else rBox.classList.remove('alert-active');
 
-        const today = new Date().toLocaleDateString('ja-JP');
-        document.getElementById('v45_sum').innerText = 
-            `【導入設計レポート】 ${today}\n` +
-            `BSA: ${bsa.toFixed(2)} m² / 目標流量(CI 2.4): ${(bsa*2.4).toFixed(1)} L/min\n` +
-            `回路: ${set.name} / 設定: ${rpm} RPM / Hb: ${hb} g/dL\n` +
-            `予測流量: ${opF.toFixed(2)} L/min (達成率: ${Math.round(opF/(bsa*2.4)*100)}%)\n` +
-            `酸素需給: DO2 ${do2} / VO2 ${vo2} ml/min (倍率: ${ratio.toFixed(1)})`;
+        document.getElementById('v_sum').innerText = `【導入設計レポート】 ${new Date().toLocaleDateString('ja-JP')}\nBSA: ${bsa.toFixed(2)} m² / 目標(CI 2.4): ${(bsa*2.4).toFixed(1)} L/min\n予測流量: ${opF.toFixed(2)} L/min (達成率: ${Math.round(opF/(bsa*2.4)*100)}%)\n酸素需給: DO2 ${do2} / VO2 ${vo2} ml/min (倍率: ${ratio.toFixed(1)})`;
 
-        const ctx = document.getElementById('v45_chart').getContext('2d');
-        if(vChart) vChart.destroy();
-        vChart = new Chart(ctx, {
+        const ctx = document.getElementById('v_chart').getContext('2d');
+        if(chart) chart.destroy();
+        chart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: Array.from({length: 21}, (_, i) => (i * 0.4).toFixed(1)),
-                datasets: [{ label: '動作点', data: [{x: opF, y: opP}], pointRadius: 7, backgroundColor: 'red' },
-                { data: Array.from({length: 21}, (_, i) => { let f = i*0.4; return (dR * Math.pow(f, 1.75) + rR * Math.pow(f, 1.75) + set.r * Math.pow(f, 1.7)) * vF; }), borderColor: '#333', pointRadius: 0, fill: false },
-                { data: Array.from({length: 21}, (_, i) => { let f = i*0.4; return Math.max(0, (set.k1 * Math.pow(rpm/3000, 2)) - (set.k2 * f * (rpm/3000))); }), borderColor: set.color, borderDash: [5,5], pointRadius: 0, fill: false }]
+                datasets: [{ label: '点', data: [{x: opF, y: opP}], pointRadius: 7, backgroundColor: 'red' },
+                { data: Array.from({length: 21}, (_, i) => { let f = i*0.4; return (dR * Math.pow(f, 1.75) + rR * Math.pow(f, 1.75) + set.r * Math.pow(f, 1.7)) * vF; }), borderColor: '#333', pointRadius: 0 },
+                { data: Array.from({length: 21}, (_, i) => { let f = i*0.4; return Math.max(0, (set.k1 * Math.pow(rpm/3000, 2)) - (set.k2 * f * (rpm/3000))); }), borderColor: set.color, borderDash: [5,5], pointRadius: 0 }]
             },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'linear', min: 0, max: 8 }, y: { min: 0, max: 600 } }, plugins: { legend: { display: false } } }
         });
