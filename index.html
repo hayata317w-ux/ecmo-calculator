@@ -3,183 +3,179 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ECMO Simulator v46</title>
+  <title>ECMO Support v61</title>
   <style>
-    body { margin: 0; padding: 0; background-color: #f0f2f5; display: flex; justify-content: center; }
-    #app { font-family: sans-serif; width: 100%; max-width: 480px; background: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+    :root { --accent: #f1c40f; --bg-dark: #2c3e50; --header-bg: #1a5276; --alert: #e74c3c; }
+    body { margin: 0; padding: 0; background-color: #f0f2f5; font-family: sans-serif; display: flex; justify-content: center; }
+    #app { width: 100%; max-width: 480px; background: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+    .header { background: var(--header-bg); color: white; padding: 12px 15px; text-align: center; font-weight: bold; }
     
-    .header { background: #1a5276; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
+    .dashboard-main { background: var(--bg-dark); color: white; padding: 15px 10px 5px 10px; text-align: center; }
+    .val-large { font-size: 3.5rem; font-weight: bold; color: var(--accent); line-height: 1; }
     
-    /* 需給ダッシュボード */
-    .dashboard { background: #2c3e50; color: white; padding: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; }
-    .dash-main { grid-column: 1 / 4; border-bottom: 1px solid #546e7a; padding-bottom: 10px; margin-bottom: 5px; }
-    .val-large { font-size: 2.8rem; font-weight: bold; color: #f1c40f; }
-    .val-med { font-size: 1.3rem; font-weight: bold; }
-    .label-mini { font-size: 0.65rem; color: #bdc3c7; }
-    .ratio-box { background: rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 0; }
-    .alert-active { background: rgba(231, 76, 60, 0.4); border: 1px solid #e74c3c; animation: blink 1.2s infinite; }
-    @keyframes blink { 50% { opacity: 0.5; } }
+    .dashboard-sub { background: var(--bg-dark); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+    .status-box { background: rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 5px; text-align: center; }
+    .label-mini { font-size: 0.7rem; color: #bdc3c7; margin-bottom: 2px; }
+    .val-med { font-size: 1.2rem; font-weight: bold; color: white; }
+    
+    .alert-active { background: var(--alert) !important; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: 0.7; } }
 
-    /* 入力エリアの重なり防止修正 */
-    .input-sec { padding: 15px; border-bottom: 1px solid #eee; }
-    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-    .full-row { margin-bottom: 15px; }
+    .content { padding: 15px; }
+    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    label { font-size: 0.75rem; font-weight: bold; color: #555; display: block; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box; background: #fff; }
     
-    label { font-size: 0.8rem; font-weight: bold; color: #555; display: block; margin-bottom: 6px; }
-    select, input { 
-      width: 100%; 
-      box-sizing: border-box; /* 幅計算を正確に */
-      padding: 12px 10px; 
-      border: 1px solid #bbb; 
-      border-radius: 6px; 
-      font-size: 1rem; 
-      background: #fdfdfd;
-    }
+    /* 血管内径表示エリア（カニューレの下へ） */
+    .vessel-info { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; margin-top: -5px; margin-bottom: 15px; }
+    .vessel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .vessel-val { font-weight: bold; color: #2c3e50; font-size: 0.9rem; margin-top: 2px; }
 
-    .vessel-guide { background: #f0f4f8; padding: 12px; border-radius: 8px; font-size: 0.8rem; border-left: 5px solid #1a5276; line-height: 1.6; }
-    .chart-container { padding: 10px; min-height: 220px; }
-    .summary-text { font-size: 0.85rem; padding: 15px; background: #f8f9fa; border-top: 1px solid #ddd; font-family: monospace; white-space: pre-wrap; }
+    .chart-container { height: 160px; margin: 10px 0; }
+    .report-box { background: #2d3436; color: #dfe6e9; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.8rem; border-left: 4px solid var(--accent); line-height: 1.4; }
   </style>
 </head>
 <body>
 
 <div id="app">
-  <div class="header">
-    <strong>ECMO Simulator v46</strong>
-    <button onclick="window.print()" style="background:#27ae60; color:white; border:none; padding:6px 12px; border-radius:5px; font-weight:bold;">保存/PDF</button>
+  <div class="header">ECMO Support v61</div>
+
+  <div class="dashboard-main">
+    <div class="label-mini">予測実流量 (L/min)</div>
+    <div id="v_flow" class="val-large">0.00</div>
   </div>
 
-  <div class="dashboard">
-    <div class="dash-main">
-      <div class="label-mini">予測実流量 (Flow)</div>
-      <div class="val-large"><span id="v_flow">0.00</span> <small style="font-size:1.2rem;">L/min</small></div>
+  <div class="dashboard-sub">
+    <div class="status-box">
+      <div class="label-mini">予測 P1 / P2 (mmHg)</div>
+      <div class="val-med"><span id="v_p1" style="color:#ff7675;">-</span> / <span id="v_p2" style="color:#74b9ff;">-</span></div>
     </div>
-    <div class="ratio-box">
-      <div class="label-mini">酸素供給(DO2)</div>
-      <div class="val-med" style="color:#2ecc71;"><span id="v_do2">-</span></div>
+    <div id="ratio_box" class="status-box">
+      <div class="label-mini">DO2 / VO2 比</div>
+      <div id="v_ratio" class="val-med">-</div>
     </div>
-    <div id="v_ratio_box" class="ratio-box">
-      <div class="label-mini">需給倍率</div>
-      <div class="val-med" id="v_ratio_val" style="color:#f39c12;"><span id="v_ratio">-</span></div>
+    <div class="status-box">
+      <div class="label-mini">BSA (m²)</div>
+      <div id="v_bsa" class="val-med">-</div>
     </div>
-    <div class="ratio-box">
-      <div class="label-mini">酸素消費(VO2)</div>
-      <div class="val-med" style="color:#e74c3c;"><span id="v_vo2">-</span></div>
+    <div class="status-box">
+      <div class="label-mini">目標流量 (CI 2.4)</div>
+      <div id="v_target" class="val-med">-</div>
     </div>
   </div>
 
-  <div class="input-sec">
-    <div class="full-row">
-      <label>回路セット</label>
-      <select id="v_set" onchange="calc()">
-        <option value="capiox">テルモ: Capiox M</option>
-        <option value="hls">ゲティンゲ: HLS</option>
-        <option value="mera">MERA: HAS</option>
-      </select>
+  <div class="content">
+    <div class="grid-row">
+      <div><label>身長 (cm)</label><input type="number" id="h" value="170" oninput="calc()"></div>
+      <div><label>体重 (kg)</label><input type="number" id="w" value="65" oninput="calc()"></div>
+    </div>
+
+    <div class="grid-row">
+      <div><label>Hb (g/dL)</label><input type="number" id="hb" value="10.0" step="0.1" oninput="calc()"></div>
+      <div><label>回転数 (RPM)</label><input type="number" id="rpm" value="2500" step="100" oninput="calc()"></div>
     </div>
     
     <div class="grid-row">
-      <div><label>目標 Hb (g/dL)</label><input type="number" id="v_hb" value="10.0" step="0.1" oninput="calc()"></div>
-      <div><label>回転数 (RPM)</label><input type="number" id="v_rpm" value="3000" step="100" oninput="calc()"></div>
+      <div><label>脱血カニューレ</label>
+        <select id="v_dFr" onchange="calc()">
+          <option value="p_v24">PCKC 24Fr (Mera)</option>
+          <option value="t_v21" selected>テルモ 21Fr</option>
+          <option value="t_v195">テルモ 19.5Fr</option>
+        </select>
+      </div>
+      <div><label>送血カニューレ</label>
+        <select id="v_rFr" onchange="calc()">
+          <option value="p_a20">PCKC 20Fr (Mera)</option>
+          <option value="t_r165">テルモ 16.5Fr</option>
+          <option value="t_r15" selected>テルモ 15Fr</option>
+        </select>
+      </div>
     </div>
 
-    <div class="grid-row">
-      <div><label>身長 (cm)</label><input type="number" id="v_h" value="170" oninput="calc()"></div>
-      <div><label>体重 (kg)</label><input type="number" id="v_w" value="65" oninput="calc()"></div>
+    <div class="vessel-info">
+      <div class="vessel-grid">
+        <div>
+          <div class="label-mini" style="color:#7f8c8d">脱血 推奨/限界 血管径</div>
+          <div id="v_d_vessel" class="vessel-val">- / - mm</div>
+        </div>
+        <div>
+          <div class="label-mini" style="color:#7f8c8d">送血 推奨/限界 血管径</div>
+          <div id="v_r_vessel" class="vessel-val">- / - mm</div>
+        </div>
+      </div>
     </div>
+
+    <div class="chart-container"><canvas id="v_chart"></canvas></div>
+    <div id="v_sum" class="report-box"></div>
   </div>
-
-  <div class="input-sec" style="background:#fcfcfc;">
-    <div class="grid-row">
-      <div><label>脱血カニューレ</label><select id="v_dM" onchange="updateSels(); calc()"></select></div>
-      <div><label>送血カニューレ</label><select id="v_rM" onchange="updateSels(); calc()"></select></div>
-    </div>
-    <div class="grid-row">
-      <div><select id="v_dFr" onchange="calc()"></select></div>
-      <div><select id="v_rFr" onchange="calc()"></select></div>
-    </div>
-    <div id="v_vessel" class="vessel-guide"></div>
-  </div>
-
-  <div class="chart-container"><canvas id="v_chart"></canvas></div>
-  <div id="v_sum" class="summary-text"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (function() {
-    const db = {
-        sets: {
-            capiox: { name: "Capiox M", k1: 460, k2: 20, r: 4.1, color: "#2e7d32" },
-            hls: { name: "Cardiohelp", k1: 510, k2: 22, r: 4.6, color: "#0056b3" },
-            mera: { name: "MERA HAS", k1: 425, k2: 18, r: 5.2, color: "#d81b60" }
-        },
-        cannulae: {
-            terumo_ebs: { name: "テルモ EBS", d: { "18": 8.2, "19.5": 6.8, "21": 5.5 }, r: { "13.5": 42.0, "15": 32.0, "16.5": 24.0 } },
-            getinge_hls: { name: "ゲティンゲ HLS", d: { "19(38)": 8.5, "21(38)": 6.2, "23(38)": 4.5, "25(38)": 3.2, "21(55)": 7.5, "23(55)": 5.8, "25(55)": 4.2 }, r: { "13(15)": 45.0, "15(15)": 32.0, "17(15)": 19.5, "19(15)": 13.0, "21(15)": 9.5, "15(23)": 38.0, "17(23)": 24.0, "19(23)": 16.5 } },
-            mera_pckc: { name: "メラ PCKC-A2", d: { "18": 11.0, "20": 7.5, "22": 5.2, "24": 3.8 }, r: { "16": 26.0, "18": 18.0, "20": 13.0 } }
-        }
-    };
     let chart = null;
-
-    window.updateSels = function() {
-        const dM = document.getElementById('v_dM'), rM = document.getElementById('v_rM');
-        if(!dM.options.length) { Object.keys(db.cannulae).forEach(m => { dM.add(new Option(db.cannulae[m].name, m)); rM.add(new Option(db.cannulae[m].name, m)); }); }
-        const dFr = document.getElementById('v_dFr'), rFr = document.getElementById('v_rFr');
-        dFr.innerHTML = Object.keys(db.cannulae[dM.value].d).map(f => `<option value="${f}">${f}Fr</option>`).join('');
-        rFr.innerHTML = Object.keys(db.cannulae[rM.value].r).map(f => `<option value="${f}">${f}Fr</option>`).join('');
+    const db = {
+        d: { "p_v24": {r:3.5, fr:24}, "t_v21": {r:8.6, fr:21}, "t_v195": {r:12.5, fr:19.5} },
+        r: { "p_a20": {r:2.5, fr:20}, "t_r165": {r:15.5, fr:16.5}, "t_r15": {r:24.5, fr:15} },
+        ox: 4.5, tube: 1.2
     };
 
-    window.calc = function() {
-        const set = db.sets[document.getElementById('v_set').value];
-        const hb = parseFloat(document.getElementById('v_hb').value) || 10;
-        const h = parseFloat(document.getElementById('v_h').value) || 170, w = parseFloat(document.getElementById('v_w').value) || 65;
-        const rpm = parseInt(document.getElementById('v_rpm').value) || 3000;
-        const bsa = Math.sqrt(h * w / 3600), vo2 = Math.round(bsa * 125);
-        const dFrVal = document.getElementById('v_dFr').value, rFrVal = document.getElementById('v_rFr').value;
-        const dOD = parseFloat(dFrVal.split('(')[0]) * 0.333, rOD = parseFloat(rFrVal.split('(')[0]) * 0.333;
-
-        document.getElementById('v_vessel').innerHTML = `<b>推奨血管内径の目安:</b><br>脱血: 推奨 ${(dOD*1.5).toFixed(1)}mm / 限界 ${(dOD*1.2).toFixed(1)}mm<br>送血: 推奨 ${(rOD*1.5).toFixed(1)}mm / 限界 ${(rOD*1.2).toFixed(1)}mm`;
-
-        const vF = (hb * 0.06) + 0.4;
-        const dR = db.cannulae[document.getElementById('v_dM').value].d[dFrVal];
-        const rR = db.cannulae[document.getElementById('v_rM').value].r[rFrVal];
+    window.calc = () => {
+        const hb = parseFloat(document.getElementById('hb').value) || 10;
+        const rpm = parseInt(document.getElementById('rpm').value) || 0;
+        const h = parseFloat(document.getElementById('h').value) || 170, w = parseFloat(document.getElementById('w').value) || 65;
+        const d_key = document.getElementById('v_dFr').value, r_key = document.getElementById('v_rFr').value;
         
-        let low = 0, high = 8, opF = 0;
-        for(let i=0; i<20; i++) {
-            let mid = (low + high) / 2;
-            let resP = (dR * Math.pow(mid, 1.75) + rR * Math.pow(mid, 1.75) + set.r * Math.pow(mid, 1.7)) * vF;
-            let pP = (set.k1 * Math.pow(rpm/3000, 2)) - (set.k2 * mid * (rpm/3000));
-            if (pP > resP) { low = mid; opF = mid; } else { high = mid; }
+        const bsa = Math.sqrt(h * w / 3600);
+        const vF = 0.5 + Math.pow((hb*3)/35, 2) * 0.5;
+        const d_data = db.d[d_key], r_data = db.r[r_key];
+        const sysR = (d_data.r + r_data.r + db.ox + db.tube);
+
+        const getVessel = (fr) => {
+            const od = fr / 3;
+            return { rec: (od / 0.66).toFixed(1), lim: (od / 0.83).toFixed(1) };
+        };
+        const dV = getVessel(d_data.fr), rV = getVessel(r_data.fr);
+        document.getElementById('v_d_vessel').innerText = `${dV.rec} / ${dV.lim} mm`;
+        document.getElementById('v_r_vessel').innerText = `${rV.rec} / ${rV.lim} mm`;
+
+        let rawQ = 0;
+        for(let q=0; q<=8; q+=0.01) {
+            let resP = sysR * Math.pow(q, 1.75) * vF;
+            let pumpP = (460 * Math.pow(rpm/3000, 2)) - (20 * q * (rpm/3000));
+            if(pumpP > resP) rawQ = q; else break;
         }
-        const opP = (dR * Math.pow(opF, 1.75) + rR * Math.pow(opF, 1.75) + set.r * Math.pow(opF, 1.7)) * vF;
-        const do2 = Math.round((hb * 1.34 + 0.12) * opF * 10);
-        const ratio = (do2 / vo2);
 
-        document.getElementById('v_flow').innerText = opF.toFixed(2);
-        document.getElementById('v_do2').innerText = do2;
-        document.getElementById('v_vo2').innerText = vo2;
+        const clinicalF = rawQ * 0.93;
+        const estP1 = -((d_data.r + 0.8) * Math.pow(clinicalF, 1.75) * vF * 1.6).toFixed(0);
+        const estP2 = ((r_data.r + db.ox + 0.4) * Math.pow(clinicalF, 1.75) * vF + 75).toFixed(0);
+        const ratio = ((hb * 1.34) * clinicalF * 10) / (bsa * 125);
+        
+        document.getElementById('v_flow').innerText = clinicalF.toFixed(2);
+        document.getElementById('v_p1').innerText = estP1;
+        document.getElementById('v_p2').innerText = estP2;
+        document.getElementById('v_bsa').innerText = bsa.toFixed(2);
+        document.getElementById('v_target').innerText = (bsa * 2.4).toFixed(1) + " L/min";
         document.getElementById('v_ratio').innerText = ratio.toFixed(1);
-
-        const rBox = document.getElementById('v_ratio_box');
-        if (ratio <= 2.0) rBox.classList.add('alert-active'); else rBox.classList.remove('alert-active');
-
-        document.getElementById('v_sum').innerText = `【導入設計レポート】 ${new Date().toLocaleDateString('ja-JP')}\nBSA: ${bsa.toFixed(2)} m² / 目標(CI 2.4): ${(bsa*2.4).toFixed(1)} L/min\n予測流量: ${opF.toFixed(2)} L/min (達成率: ${Math.round(opF/(bsa*2.4)*100)}%)\n酸素需給: DO2 ${do2} / VO2 ${vo2} ml/min (倍率: ${ratio.toFixed(1)})`;
+        document.getElementById('ratio_box').className = ratio <= 2.0 ? 'status-box alert-active' : 'status-box';
 
         const ctx = document.getElementById('v_chart').getContext('2d');
         if(chart) chart.destroy();
         chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array.from({length: 21}, (_, i) => (i * 0.4).toFixed(1)),
-                datasets: [{ label: '点', data: [{x: opF, y: opP}], pointRadius: 7, backgroundColor: 'red' },
-                { data: Array.from({length: 21}, (_, i) => { let f = i*0.4; return (dR * Math.pow(f, 1.75) + rR * Math.pow(f, 1.75) + set.r * Math.pow(f, 1.7)) * vF; }), borderColor: '#333', pointRadius: 0 },
-                { data: Array.from({length: 21}, (_, i) => { let f = i*0.4; return Math.max(0, (set.k1 * Math.pow(rpm/3000, 2)) - (set.k2 * f * (rpm/3000))); }), borderColor: set.color, borderDash: [5,5], pointRadius: 0 }]
+                labels: Array.from({length: 41}, (_, i) => (i * 0.2).toFixed(1)),
+                datasets: [
+                    { data: Array.from({length: 41}, (_, i) => sysR * Math.pow(i*0.2, 1.75) * vF), borderColor: '#333', pointRadius: 0, fill: false },
+                    { data: Array.from({length: 41}, (_, i) => Math.max(0, (460 * Math.pow(rpm/3000, 2)) - (20 * (i*0.2) * (rpm/3000)))), borderColor: '#2ecc71', borderDash: [5, 5], pointRadius: 0, fill: false },
+                    { data: [{x: clinicalF.toFixed(2), y: (460 * Math.pow(rpm/3000, 2)) - (20 * clinicalF * (rpm/3000))}], pointRadius: 8, backgroundColor: 'red', showLine: false }
+                ]
             },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'linear', min: 0, max: 8 }, y: { min: 0, max: 600 } }, plugins: { legend: { display: false } } }
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'linear', min: 0, max: 6 }, y: { min: 0, max: 500 } }, plugins: { legend: { display: false } } }
         });
+        document.getElementById('v_sum').innerText = `【分析レポート】\n身長・体重から目標CI 2.4を算出。\nカニューレ選定に対し、占有率66%を推奨、83%を限界径としてガイドを表示。`;
     };
-    setTimeout(() => { updateSels(); calc(); }, 600);
+    calc();
 })();
 </script>
 </body>
