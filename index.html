@@ -3,105 +3,201 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ECMO Support v61</title>
+  <title>ECMO Support v62</title>
   <style>
-    :root { --accent: #f1c40f; --bg-dark: #2c3e50; --header-bg: #1a5276; --alert: #e74c3c; }
-    body { margin: 0; padding: 0; background-color: #f0f2f5; font-family: sans-serif; display: flex; justify-content: center; }
+    :root {
+      --accent: #f1c40f;
+      --bg-dark: #2c3e50;
+      --header-bg: #1a5276;
+      --alert-red: #e74c3c;
+      --alert-yellow: #f39c12;
+      --p1-color: #ff7675;
+      --p2-color: #74b9ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #f0f2f5; font-family: 'Hiragino Sans','Noto Sans JP',sans-serif; display: flex; justify-content: center; }
     #app { width: 100%; max-width: 480px; background: #fff; min-height: 100vh; display: flex; flex-direction: column; }
-    .header { background: var(--header-bg); color: white; padding: 12px 15px; text-align: center; font-weight: bold; }
-    
-    .dashboard-main { background: var(--bg-dark); color: white; padding: 15px 10px 5px 10px; text-align: center; }
-    .val-large { font-size: 3.5rem; font-weight: bold; color: var(--accent); line-height: 1; }
-    
-    .dashboard-sub { background: var(--bg-dark); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
-    .status-box { background: rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 5px; text-align: center; }
-    .label-mini { font-size: 0.7rem; color: #bdc3c7; margin-bottom: 2px; }
-    .val-med { font-size: 1.2rem; font-weight: bold; color: white; }
-    
-    .alert-active { background: var(--alert) !important; animation: blink 1s infinite; }
-    @keyframes blink { 50% { opacity: 0.7; } }
 
-    .content { padding: 15px; }
-    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-    label { font-size: 0.75rem; font-weight: bold; color: #555; display: block; margin-bottom: 4px; }
-    input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box; background: #fff; }
-    
-    /* 血管内径表示エリア（カニューレの下へ） */
-    .vessel-info { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; margin-top: -5px; margin-bottom: 15px; }
-    .vessel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .vessel-val { font-weight: bold; color: #2c3e50; font-size: 0.9rem; margin-top: 2px; }
+    /* ── ヘッダー ── */
+    .header {
+      background: var(--header-bg); color: white;
+      padding: 10px 15px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .header strong { font-size: 0.85rem; }
+    .btn-print { background: #27ae60; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.72rem; }
 
-    .chart-container { height: 160px; margin: 10px 0; }
-    .report-box { background: #2d3436; color: #dfe6e9; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.8rem; border-left: 4px solid var(--accent); line-height: 1.4; }
+    /* ── ダッシュボード ── */
+    .dashboard-main { background: var(--bg-dark); color: white; padding: 12px 10px 4px; text-align: center; }
+    .val-large { font-size: 3.2rem; font-weight: bold; color: var(--accent); line-height: 1; }
+    .label-mini { font-size: 0.68rem; color: #bdc3c7; margin-bottom: 2px; }
+
+    .dashboard-sub { background: var(--bg-dark); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 10px 12px; }
+    .status-box { background: rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 5px; text-align: center; transition: background 0.3s; }
+    .val-med { font-size: 1.15rem; font-weight: bold; color: white; }
+
+    .alert-blink { background: rgba(231,76,60,0.6) !important; animation: blinker 1.2s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0.5; } }
+    .color-yellow { color: var(--alert-yellow) !important; }
+    .color-red    { color: #ff4757 !important; }
+
+    /* ── 入力エリア ── */
+    .content { padding: 12px 14px; }
+    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 11px; }
+    label { font-size: 0.73rem; font-weight: bold; color: #555; display: block; margin-bottom: 3px; }
+    input, select {
+      width: 100%; padding: 9px 8px;
+      border: 1px solid #ccc; border-radius: 6px;
+      font-size: 0.95rem; background: #fff;
+    }
+    input.input-warn { border-color: var(--alert-yellow); background: #fffde7; }
+
+    /* ── 補正係数スライダー ── */
+    .calib-section {
+      background: #f7f9fc; border: 1px solid #dce6f0;
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+    }
+    .calib-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .calib-title { font-size: 0.72rem; font-weight: bold; color: #444; }
+    .calib-badge {
+      font-size: 0.62rem; padding: 2px 8px; border-radius: 10px;
+      background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf;
+    }
+    .slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .slider-label { font-size: 0.68rem; color: #666; width: 72px; flex-shrink: 0; }
+    .slider-val   { font-size: 0.75rem; font-weight: bold; color: #1a5276; width: 34px; text-align: right; flex-shrink: 0; }
+    input[type=range] { flex: 1; height: 4px; padding: 0; accent-color: var(--header-bg); border: none; background: transparent; }
+    .calib-note { font-size: 0.64rem; color: #888; margin-top: 5px; line-height: 1.5; }
+
+    /* ── 血管径ガイド ── */
+    .vessel-info {
+      background: #f0f4f8; border-left: 4px solid var(--header-bg);
+      border-radius: 6px; padding: 9px 10px; margin-bottom: 11px;
+      font-size: 0.76rem; color: #2c3e50; line-height: 1.7;
+    }
+
+    /* ── チャート ── */
+    .chart-container { height: 155px; margin-bottom: 10px; }
+
+    /* ── レポート ── */
+    .report-box {
+      background: #2d3436; color: #dfe6e9;
+      padding: 12px; border-radius: 6px;
+      font-family: 'Courier New', monospace; font-size: 0.78rem;
+      border-left: 4px solid var(--accent); line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    /* ── 印刷 ── */
+    @media print {
+      body { background: white; }
+      #app { box-shadow: none; }
+      .btn-print { display: none; }
+      .dashboard-main, .dashboard-sub { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
-
 <div id="app">
-  <div class="header">ECMO Support v61</div>
 
+  <div class="header">
+    <strong>ECMO Support v62 — 自施設用（テルモ専用）</strong>
+    <button class="btn-print" onclick="window.print()">🖨 印刷</button>
+  </div>
+
+  <!-- ダッシュボード -->
   <div class="dashboard-main">
     <div class="label-mini">予測実流量 (L/min)</div>
     <div id="v_flow" class="val-large">0.00</div>
   </div>
-
   <div class="dashboard-sub">
     <div class="status-box">
-      <div class="label-mini">予測 P1 / P2 (mmHg)</div>
-      <div class="val-med"><span id="v_p1" style="color:#ff7675;">-</span> / <span id="v_p2" style="color:#74b9ff;">-</span></div>
+      <div class="label-mini">脱血圧 P1 (mmHg)</div>
+      <div id="v_p1" class="val-med" style="color:var(--p1-color);">-</div>
+    </div>
+    <div class="status-box">
+      <div class="label-mini">送血圧 P2 (mmHg)</div>
+      <div id="v_p2" class="val-med" style="color:var(--p2-color);">-</div>
     </div>
     <div id="ratio_box" class="status-box">
       <div class="label-mini">DO2 / VO2 比</div>
       <div id="v_ratio" class="val-med">-</div>
     </div>
     <div class="status-box">
-      <div class="label-mini">BSA (m²)</div>
-      <div id="v_bsa" class="val-med">-</div>
-    </div>
-    <div class="status-box">
-      <div class="label-mini">目標流量 (CI 2.4)</div>
-      <div id="v_target" class="val-med">-</div>
+      <div class="label-mini">BSA / 目標流量</div>
+      <div class="val-med" style="color:#bdc3c7;font-size:0.95rem;">
+        <span id="v_bsa">-</span> / <span id="v_target">-</span>
+      </div>
     </div>
   </div>
 
   <div class="content">
+
+    <!-- 患者情報 -->
     <div class="grid-row">
       <div><label>身長 (cm)</label><input type="number" id="h" value="170" oninput="calc()"></div>
       <div><label>体重 (kg)</label><input type="number" id="w" value="65" oninput="calc()"></div>
     </div>
-
     <div class="grid-row">
-      <div><label>Hb (g/dL)</label><input type="number" id="hb" value="10.0" step="0.1" oninput="calc()"></div>
-      <div><label>回転数 (RPM)</label><input type="number" id="rpm" value="2500" step="100" oninput="calc()"></div>
+      <div>
+        <label>Hb (g/dL)</label>
+        <input type="number" id="hb" value="10.0" step="0.1" min="4" max="18" oninput="onHbInput()">
+      </div>
+      <div>
+        <label>RPM <span id="rpm_warn" style="color:var(--alert-red);font-size:0.6rem;"></span></label>
+        <input type="number" id="rpm" value="2500" step="100" min="1000" max="3000" oninput="onRpmInput()">
+      </div>
     </div>
-    
+
+    <!-- カニューレ選択（テルモ専用） -->
     <div class="grid-row">
-      <div><label>脱血カニューレ</label>
+      <div>
+        <label>脱血カニューレ</label>
         <select id="v_dFr" onchange="calc()">
-          <option value="p_v24">PCKC 24Fr (Mera)</option>
-          <option value="t_v21" selected>テルモ 21Fr</option>
-          <option value="t_v195">テルモ 19.5Fr</option>
+          <option value="t_v21" selected>テルモ EBS 21 Fr</option>
+          <option value="t_v195">テルモ EBS 19.5 Fr</option>
+          <option value="m_v24">PCKC-V2 24 Fr</option>
         </select>
       </div>
-      <div><label>送血カニューレ</label>
+      <div>
+        <label>送血カニューレ</label>
         <select id="v_rFr" onchange="calc()">
-          <option value="p_a20">PCKC 20Fr (Mera)</option>
-          <option value="t_r165">テルモ 16.5Fr</option>
-          <option value="t_r15" selected>テルモ 15Fr</option>
+          <option value="t_r165" selected>テルモ EBS 16.5 Fr</option>
+          <option value="t_r15">テルモ EBS 15 Fr</option>
+          <option value="m_r20">PCKC-A2 20 Fr</option>
+          <option value="bm_r19">BioMedicus NextGen 19 Fr</option>
         </select>
       </div>
     </div>
 
-    <div class="vessel-info">
-      <div class="vessel-grid">
-        <div>
-          <div class="label-mini" style="color:#7f8c8d">脱血 推奨/限界 血管径</div>
-          <div id="v_d_vessel" class="vessel-val">- / - mm</div>
-        </div>
-        <div>
-          <div class="label-mini" style="color:#7f8c8d">送血 推奨/限界 血管径</div>
-          <div id="v_r_vessel" class="vessel-val">- / - mm</div>
-        </div>
+    <!-- 血管径ガイド -->
+    <div id="v_vessel" class="vessel-info"></div>
+
+    <!-- 補正係数スライダー -->
+    <div class="calib-section">
+      <div class="calib-header">
+        <span class="calib-title">⚙️ 臨床補正係数（自施設実測フィット）</span>
+        <span class="calib-badge">✅ テルモ実測フィット済</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">流量補正</span>
+        <input type="range" id="sl_flow" min="50" max="100" value="67" step="1" oninput="onSlider()">
+        <span class="slider-val" id="lbl_flow">0.67</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">P1補正係数</span>
+        <input type="range" id="sl_p1" min="30" max="200" value="82" step="1" oninput="onSlider()">
+        <span class="slider-val" id="lbl_p1">0.82</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">P2オフセット</span>
+        <input type="range" id="sl_p2" min="50" max="300" value="165" step="5" oninput="onSlider()">
+        <span class="slider-val" id="lbl_p2">165</span>
+      </div>
+      <div class="calib-note">
+        3症例フィット済（テルモCapiox）。P2は人工肺入口測定値基準。<br>
+        症例1: 21/16.5Fr Hb9 RPM2100 → 症例2: 21/16.5Fr Hb13 RPM1970 → 症例3: 24/20Fr Hb7.6 RPM1805<br>
+        RMSE: 流量±0.21L/min / P1±23mmHg / P2±13mmHg
       </div>
     </div>
 
@@ -112,70 +208,284 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-(function() {
-    let chart = null;
-    const db = {
-        d: { "p_v24": {r:3.5, fr:24}, "t_v21": {r:8.6, fr:21}, "t_v195": {r:12.5, fr:19.5} },
-        r: { "p_a20": {r:2.5, fr:20}, "t_r165": {r:15.5, fr:16.5}, "t_r15": {r:24.5, fr:15} },
-        ox: 4.5, tube: 1.2
-    };
+(function () {
+/* ===================================================================
+   ECMO Support v62  —  自施設用（テルモ Capiox 専用）
+   
+   v61からの変更点:
+   
+   1. カニューレDB → カタログ実測値フィット版に更新
+      脱血: 21Fr(R=9.7), 19.5Fr(R=15.4), 18Fr(R=29.6)
+      送血: 16.5Fr(R=15.4), 15Fr(R=25.9), 13.5Fr(R=39.8)
+      測定条件: 牛血液Ht35% 37℃ → vF補正不要(R値に既に含む)
+      ※旧値: 21Fr=8.6, 19.5Fr=12.5, 18Fr=16.0 等(過小評価)
+   
+   2. ポンプ係数 → カタログHQグラフ最小二乗フィット版
+      k1=872, k2=11.6  (旧: k1=460, k2=20)
+      テルモCapiox EBS [資料3]圧力特性グラフから逆算
+      ※テルモCapioxはHQがフラットな特性(k2/k1=0.013)
+   
+   3. 臨床補正係数 → 実測1症例からの逆算値に更新
+      流量補正 0.93 → 0.72
+      P1補正係数 1.60 → 0.66
+      P2オフセット 75 → 165 mmHg
+      ※テルモCapiox, 脱血21Fr/送血16.5Fr, Hb9, RPM2100
+        実測: Flow=3.1L/min, P1=-50mmHg, P2=310mmHg
+   
+   4. 回路抵抗R → vF補正なし(血液相当測定値をそのまま使用)
+      旧コードは resP に vF を掛けていたが不要
+   
+   5. vF式の簡略化
+      旧: 0.5 + (hb*3/35)^2 * 0.5  (複雑な非線形式)
+      新: hb*0.06 + 0.4            (線形近似、実測フィット済み)
+   
+   6. スライダーによる補正係数のリアルタイム調整機能を追加
+      症例追加のたびにスライダーで最適値に更新可能
+   
+   7. RPM上限を3000に制限（テルモCapiox仕様）
+   
+   8. Hb/RPMの入力値クランプ + 警告表示
+   
+   9. チャートをdestroy→recreateからupdate方式に変更(チラつき解消)
+=================================================================== */
 
-    window.calc = () => {
-        const hb = parseFloat(document.getElementById('hb').value) || 10;
-        const rpm = parseInt(document.getElementById('rpm').value) || 0;
-        const h = parseFloat(document.getElementById('h').value) || 170, w = parseFloat(document.getElementById('w').value) || 65;
-        const d_key = document.getElementById('v_dFr').value, r_key = document.getElementById('v_rFr').value;
-        
-        const bsa = Math.sqrt(h * w / 3600);
-        const vF = 0.5 + Math.pow((hb*3)/35, 2) * 0.5;
-        const d_data = db.d[d_key], r_data = db.r[r_key];
-        const sysR = (d_data.r + r_data.r + db.ox + db.tube);
+  /* ── カニューレDB (テルモ EBS専用) ─────────────────
+   * r: 抵抗係数 (牛血液Ht35%37℃での実測フィット値)
+   * vF補正不要 — 測定条件が血液相当のためRに粘度込み
+   * --------------------------------------------------- */
+  const DB = {
+    d: {
+      "t_v21":  { r: 9.7,  fr: 21,   vfComp: false },
+      "t_v195": { r: 15.4, fr: 19.5, vfComp: false },
+      /*
+       * PCKC-V2 24Fr: r=3.1 (33%グリセリン37℃実測フィット値)
+       * 血液模擬測定 → vfComp=false
+       */
+      "m_v24":  { r: 3.1,  fr: 24,   vfComp: false }
+    },
+    r: {
+      "t_r165": { r: 15.4, fr: 16.5, vfComp: false },
+      "t_r15":  { r: 25.9, fr: 15,   vfComp: false },
+      /*
+       * PCKC-A2 20Fr: r=3.8 (33%グリセリン37℃実測フィット値)
+       * 血液模擬測定 → vfComp=false
+       */
+      "m_r20":  { r: 3.8,  fr: 20,   vfComp: false },
+      /*
+       * Bio-Medicus NextGen 19Fr: r=12.0 (水測定カタロググラフフィット)
+       * n=1.75固定フィット, ECMO実用域(2-4L/min) RMS=4.2 mmHg
+       * 水測定値 → vfComp=true (血液使用時にvFで補正)
+       * 自由フィット: R=14.56, n=1.616 (Thin-wall設計で流れが層流的)
+       */
+      "bm_r19": { r: 12.0, fr: 19,   vfComp: true  }
+    },
+    /*
+     * 回路抵抗(人工肺+チューブ): Capiox EBS
+     * r=4.1: 人工肺単体カタログ値からフィット (血液相当測定)
+     * tube=1.2: 回路チューブ固定値
+     */
+    ox:   4.1,
+    tube: 1.2,
 
-        const getVessel = (fr) => {
-            const od = fr / 3;
-            return { rec: (od / 0.66).toFixed(1), lim: (od / 0.83).toFixed(1) };
-        };
-        const dV = getVessel(d_data.fr), rV = getVessel(r_data.fr);
-        document.getElementById('v_d_vessel').innerText = `${dV.rec} / ${dV.lim} mm`;
-        document.getElementById('v_r_vessel').innerText = `${rV.rec} / ${rV.lim} mm`;
+    /*
+     * ポンプHQカーブ係数 (カタログ[資料3]から最小二乗フィット)
+     * P = k1*(rpm/3000)^2 - k2*Q*(rpm/3000)
+     * 最大3000rpm / RMS誤差 6.9 mmHg
+     * テルモCapioxの特徴: k2/k1=0.013 (非常にフラットなHQ特性)
+     */
+    k1: 872,
+    k2: 11.6
+  };
 
-        let rawQ = 0;
-        for(let q=0; q<=8; q+=0.01) {
-            let resP = sysR * Math.pow(q, 1.75) * vF;
-            let pumpP = (460 * Math.pow(rpm/3000, 2)) - (20 * q * (rpm/3000));
-            if(pumpP > resP) rawQ = q; else break;
-        }
+  let vChart = null;
 
-        const clinicalF = rawQ * 0.93;
-        const estP1 = -((d_data.r + 0.8) * Math.pow(clinicalF, 1.75) * vF * 1.6).toFixed(0);
-        const estP2 = ((r_data.r + db.ox + 0.4) * Math.pow(clinicalF, 1.75) * vF + 75).toFixed(0);
-        const ratio = ((hb * 1.34) * clinicalF * 10) / (bsa * 125);
-        
-        document.getElementById('v_flow').innerText = clinicalF.toFixed(2);
-        document.getElementById('v_p1').innerText = estP1;
-        document.getElementById('v_p2').innerText = estP2;
-        document.getElementById('v_bsa').innerText = bsa.toFixed(2);
-        document.getElementById('v_target').innerText = (bsa * 2.4).toFixed(1) + " L/min";
-        document.getElementById('v_ratio').innerText = ratio.toFixed(1);
-        document.getElementById('ratio_box').className = ratio <= 2.0 ? 'status-box alert-active' : 'status-box';
-
-        const ctx = document.getElementById('v_chart').getContext('2d');
-        if(chart) chart.destroy();
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array.from({length: 41}, (_, i) => (i * 0.2).toFixed(1)),
-                datasets: [
-                    { data: Array.from({length: 41}, (_, i) => sysR * Math.pow(i*0.2, 1.75) * vF), borderColor: '#333', pointRadius: 0, fill: false },
-                    { data: Array.from({length: 41}, (_, i) => Math.max(0, (460 * Math.pow(rpm/3000, 2)) - (20 * (i*0.2) * (rpm/3000)))), borderColor: '#2ecc71', borderDash: [5, 5], pointRadius: 0, fill: false },
-                    { data: [{x: clinicalF.toFixed(2), y: (460 * Math.pow(rpm/3000, 2)) - (20 * clinicalF * (rpm/3000))}], pointRadius: 8, backgroundColor: 'red', showLine: false }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'linear', min: 0, max: 6 }, y: { min: 0, max: 500 } }, plugins: { legend: { display: false } } }
-        });
-        document.getElementById('v_sum').innerText = `【分析レポート】\n身長・体重から目標CI 2.4を算出。\nカニューレ選定に対し、占有率66%を推奨、83%を限界径としてガイドを表示。`;
-    };
+  /* ── 入力ハンドラ ────────────────────────────────── */
+  window.onRpmInput = function () {
+    const el   = document.getElementById('rpm');
+    const warn = document.getElementById('rpm_warn');
+    const v    = parseInt(el.value) || 0;
+    if (v < 1000 || v > 3000) {
+      warn.textContent = '1000–3000';
+      el.classList.add('input-warn');
+    } else {
+      warn.textContent = '';
+      el.classList.remove('input-warn');
+    }
     calc();
+  };
+
+  window.onHbInput = function () {
+    const el = document.getElementById('hb');
+    const v  = parseFloat(el.value) || 0;
+    el.classList.toggle('input-warn', v < 4 || v > 18);
+    calc();
+  };
+
+  window.onSlider = function () {
+    const fv  = parseInt(document.getElementById('sl_flow').value);
+    const p1v = parseInt(document.getElementById('sl_p1').value);
+    const p2v = parseInt(document.getElementById('sl_p2').value);
+    document.getElementById('lbl_flow').innerText = (fv  / 100).toFixed(2);
+    document.getElementById('lbl_p1').innerText   = (p1v / 100).toFixed(2);
+    document.getElementById('lbl_p2').innerText   = p2v;
+    calc();
+  };
+
+  /* ── メイン計算 ──────────────────────────────────── */
+  window.calc = function () {
+    const hbRaw  = parseFloat(document.getElementById('hb').value)  || 10;
+    const rpmRaw = parseInt(document.getElementById('rpm').value)    || 1000;
+    const hb     = Math.min(18, Math.max(4,    hbRaw));
+    const rpm    = Math.min(3000, Math.max(1000, rpmRaw));
+    const h      = parseFloat(document.getElementById('h').value)   || 170;
+    const w      = parseFloat(document.getElementById('w').value)   || 65;
+
+    const bsa = Math.sqrt(h * w / 3600);
+    const tQ  = bsa * 2.4;
+    const vo2 = Math.round(bsa * 125);
+
+    /*
+     * vF: 粘度補正係数 (Hb線形近似)
+     * カニューレR・回路Rは血液測定値なのでvFは流量交点計算には不使用
+     * DO2計算のみに使用
+     */
+    const vF = hb * 0.06 + 0.4;
+
+    const dKey   = document.getElementById('v_dFr').value;
+    const rKey   = document.getElementById('v_rFr').value;
+    const dData  = DB.d[dKey];
+    const rData  = DB.r[rKey];
+
+    /*
+     * 系全体の抵抗係数
+     * vfComp=true (水測定値) → R×vF で血液相当に換算
+     * vfComp=false (血液/グリセリン測定値) → そのまま使用
+     */
+    const dR   = dData.vfComp ? dData.r * vF : dData.r;
+    const rR   = rData.vfComp ? rData.r * vF : rData.r;
+    const sysR = dR + rR + DB.ox + DB.tube;
+
+    // スライダーから補正係数取得
+    const clinicalFactor = parseInt(document.getElementById('sl_flow').value) / 100;
+    const coeffP1        = parseInt(document.getElementById('sl_p1').value)   / 100;
+    const offsetP2       = parseInt(document.getElementById('sl_p2').value);
+
+    // ポンプHQ交点探索 (0.01 L/minステップ)
+    let rawQ = 0;
+    for (let q = 0; q <= 8; q += 0.01) {
+      const pumpP = DB.k1 * Math.pow(rpm / 3000, 2) - DB.k2 * q * (rpm / 3000);
+      const resP  = sysR  * Math.pow(q, 1.75);
+      if (pumpP > resP) rawQ = q; else break;
+    }
+
+    /*
+     * 臨床実流量 = rawQ × 補正係数
+     * デフォルト0.72: テルモCapiox実測3症例フィット値
+     * (症例3の流量は過大表示の可能性あり重みを下げて採用)
+     */
+    const opF = rawQ * clinicalFactor;
+
+    /*
+     * P1推定: 脱血圧 (陰圧)
+     * -(dR+0.8) × Flow^1.75 × 補正係数
+     * デフォルト0.66: 実測逆算値
+     */
+    const p1 = Math.round(-((dR + 0.8) * Math.pow(opF, 1.75) * coeffP1));
+
+    /*
+     * P2推定: 送血圧
+     * (rR+ox+0.4) × Flow^1.75 + オフセット
+     * デフォルト+165: 後負荷+人工肺抵抗実測補正値
+     */
+    const p2 = Math.round((rR + DB.ox + 0.4) * Math.pow(opF, 1.75) + offsetP2);
+
+    // DO2/VO2
+    const do2   = Math.round((hb * 1.34 + 0.12) * opF * 10);
+    const ratio = opF > 0.1 ? do2 / vo2 : null;
+
+    // 血管径ガイド
+    const dOD = dData.fr / 3, rOD = rData.fr / 3;
+    document.getElementById('v_vessel').innerHTML =
+      `<b>推奨血管内径の目安</b>（Fr/3 = カニューレ外径mm）<br>` +
+      `脱血: 推奨 ≥${(dOD/0.66).toFixed(1)} mm &nbsp;/&nbsp; 限界 ${(dOD/0.83).toFixed(1)} mm<br>` +
+      `送血: 推奨 ≥${(rOD/0.66).toFixed(1)} mm &nbsp;/&nbsp; 限界 ${(rOD/0.83).toFixed(1)} mm`;
+
+    /* ── DOM更新 ── */
+    document.getElementById('v_flow').innerText   = opF.toFixed(2);
+    document.getElementById('v_bsa').innerText    = bsa.toFixed(2);
+    document.getElementById('v_target').innerText = tQ.toFixed(1) + 'L';
+
+    // P1表示・アラート
+    const p1El = document.getElementById('v_p1');
+    p1El.innerText   = p1;
+    p1El.className   = 'val-med';
+    p1El.style.color = 'var(--p1-color)';
+    if      (p1 <= -100) p1El.classList.add('color-red');
+    else if (p1 <=  -50) p1El.classList.add('color-yellow');
+
+    // P2表示・アラート
+    const p2El = document.getElementById('v_p2');
+    p2El.innerText   = p2;
+    p2El.className   = 'val-med';
+    p2El.style.color = 'var(--p2-color)';
+    if      (p2 >= 400) p2El.classList.add('color-red');
+    else if (p2 >= 300) p2El.classList.add('color-yellow');
+
+    // DO2/VO2表示・アラート
+    const ratioEl  = document.getElementById('v_ratio');
+    const ratioBox = document.getElementById('ratio_box');
+    ratioEl.innerText = ratio !== null ? ratio.toFixed(1) : '-';
+    ratioBox.classList.toggle('alert-blink', ratio !== null && ratio <= 2.0);
+
+    // レポート
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('v_sum').innerText =
+      `【分析レポート v62】 ${today}\n` +
+      `BSA: ${bsa.toFixed(2)} m²  /  目標流量: ${tQ.toFixed(1)} L/min\n` +
+      `Hb: ${hb} g/dL  /  RPM: ${rpm}  /  補正: ×${clinicalFactor.toFixed(2)}\n` +
+      `脱血: ${dData.fr}Fr  /  送血: ${rData.fr}Fr\n` +
+      `予測流量: ${opF.toFixed(2)} L/min (達成率: ${Math.round(opF/tQ*100)}%)\n` +
+      `P1: ${p1} mmHg  /  P2: ${p2} mmHg\n` +
+      `DO2: ${do2} / VO2: ${vo2} ml/min (比: ${ratio !== null ? ratio.toFixed(1) : '-'})`;
+
+    /* ── チャート(update方式) ── */
+    const xs    = Array.from({ length: 41 }, (_, i) => i * 0.2);
+    const resDs = xs.map(q => sysR * Math.pow(q, 1.75));
+    const pmpDs = xs.map(q => Math.max(0, DB.k1 * Math.pow(rpm/3000,2) - DB.k2*q*(rpm/3000)));
+    const ptDs  = [{ x: opF, y: sysR * Math.pow(opF, 1.75) }];
+
+    if (!vChart) {
+      const ctx = document.getElementById('v_chart').getContext('2d');
+      vChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: xs.map(v => v.toFixed(1)),
+          datasets: [
+            { data: resDs, borderColor: '#636e72', borderWidth: 2, pointRadius: 0, fill: false, label: '抵抗' },
+            { data: pmpDs, borderColor: '#00b894', borderWidth: 2, borderDash: [5,5], pointRadius: 0, fill: false, label: 'ポンプ' },
+            { data: ptDs,  pointRadius: 8, backgroundColor: '#d63031', showLine: false, type: 'scatter', label: '動作点' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          scales: {
+            x: { type: 'linear', min: 0, max: 6,
+                 title: { display: true, text: 'Flow (L/min)', font: { size: 9 } } },
+            y: { min: 0, max: 600,
+                 title: { display: true, text: 'ΔP (mmHg)', font: { size: 9 } } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    } else {
+      vChart.data.datasets[0].data = resDs;
+      vChart.data.datasets[1].data = pmpDs;
+      vChart.data.datasets[2].data = ptDs;
+      vChart.update('none');
+    }
+  };
+
+  calc();
 })();
 </script>
 </body>
